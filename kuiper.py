@@ -6,9 +6,13 @@ from scipy import factorial, comb
 import itertools
 
 def kuiper_FPP(D,N):
-    """Compute the false positive probability for the Kuiper statistic
+    """Compute the false positive probability for the Kuiper statistic.
 
-    Uses the set of four formulas described in Paltani 2004; they report the resulting function never underestimates the false positive probability but can be a bit high in the N=40..50 range. (They quote a factor 1.5 at the 1e-7 level.
+    Uses the set of four formulas described in Paltani 2004; they report 
+    the resulting function never underestimates the false positive probability 
+    but can be a bit high in the N=40..50 range. (They quote a factor 1.5 at 
+    the 1e-7 level.
+
     """
     if D<0. or D>2.:
         raise ValueError("Must have 0<=D<=2 by definition of the Kuiper test")
@@ -51,19 +55,32 @@ def kuiper_FPP(D,N):
         return S1 - 8*D/(3.*sqrt(N))*S2
 
 def kuiper(data, cdf=lambda x: x, args=()):
-    """Compute the Kuiper statistic
+    """Compute the Kuiper statistic.
     
-    Use the Kuiper statistic version of the Kolmogorov-Smirnov test to find the probability that something like data was drawn from the distribution whose CDF is given as cdf.
+    Use the Kuiper statistic version of the Kolmogorov-Smirnov test to 
+    find the probability that something like data was drawn from the 
+    distribution whose CDF is given as cdf.
 
-    The Kuiper statistic resembles the Kolmogorov-Smirnov test in that it is nonparametric and invariant under reparameterizations of the data. The Kuiper statistic, in addition, is equally sensitive throughout the domain, and it is also invariant under cyclic permutations (making it particularly appropriate for analyzing circular data). 
+    The Kuiper statistic resembles the Kolmogorov-Smirnov test in that 
+    it is nonparametric and invariant under reparameterizations of the data. 
+    The Kuiper statistic, in addition, is equally sensitive throughout 
+    the domain, and it is also invariant under cyclic permutations (making 
+    it particularly appropriate for analyzing circular data). 
 
-    Returns (D, fpp), where D is the Kuiper D number and fpp is the probability that a value as large as D would occur if data was drawn from cdf.
+    Returns (D, fpp), where D is the Kuiper D number and fpp is the 
+    probability that a value as large as D would occur if data was 
+    drawn from cdf.
 
-    Warning: The fpp is calculated only approximately, and it can be as much as 1.5 times the true value.
+    Warning: The fpp is calculated only approximately, and it can be 
+    as much as 1.5 times the true value.
 
-    Stephens 1970 claims this is more effective than the KS at detecting changes in the variance of a distribution; the KS is (he claims) more sensitive at detecting changes in the mean.
+    Stephens 1970 claims this is more effective than the KS at detecting 
+    changes in the variance of a distribution; the KS is (he claims) more 
+    sensitive at detecting changes in the mean.
 
-    If cdf was obtained from data by fitting, then fpp is not correct and it will be necessary to do Monte Carlo simulations to interpret D. D should normally be independent of the shape of CDF.
+    If cdf was obtained from data by fitting, then fpp is not correct and 
+    it will be necessary to do Monte Carlo simulations to interpret D. 
+    D should normally be independent of the shape of CDF.
 
     """
 
@@ -76,9 +93,10 @@ def kuiper(data, cdf=lambda x: x, args=()):
     return D, kuiper_FPP(D,N)
 
 def kuiper_two(data1, data2):
-    """Compute the Kuiper statistic to compare two samples
+    """Compute the Kuiper statistic to compare two samples.
 
     Warning: the fpp is quite approximate, especially for small samples.
+
     """
     data1, data2 = sort(data1), sort(data2)
 
@@ -95,6 +113,18 @@ def kuiper_two(data1, data2):
 
 
 def fold_intervals(intervals):
+    """Fold the weighted intervals to the interval (0,1).
+
+    Convert a list of intervals (ai, bi, wi) to a list of non-overlapping
+    intervals covering (0,1). Each output interval has a weight equal
+    to the sum of the wis of all the intervals that include it. All intervals
+    are interpreted modulo 1, and weights are accumulated counting 
+    multiplicity.
+
+    The return format is an array of breaks of length N, and an array of
+    weights of length N-1.
+    
+    """
     r = []
     breaks = set()
     tot = 0
@@ -119,6 +149,13 @@ def fold_intervals(intervals):
     return np.array(breaks), totals
 
 def cdf_from_intervals(breaks, totals):
+    """Construct a callable piecewise-linear CDF from a pair of arrays.
+    
+    Take a pair of arrays in the format returned by fold_intervals and
+    make a callable cumulative distribution function on the interval
+    (0,1).
+
+    """
     if breaks[0]!=0 or breaks[-1]!=1:
         raise ValueError("Intervals must be restricted to [0,1]")
     if np.any(np.diff(breaks)<=0):
@@ -137,6 +174,7 @@ def cdf_from_intervals(breaks, totals):
     return cdf
 
 def interval_overlap_length(i1,i2):
+    """Compute the length of overlap of two intervals."""
     (a,b) = i1
     (c,d) = i2
     if a<c:
