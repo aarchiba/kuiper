@@ -11,7 +11,7 @@ def kuiper_FPP(D,N):
     Uses the set of four formulas described in Paltani 2004; they report the resulting function never underestimates the false positive probability but can be a bit high in the N=40..50 range. (They quote a factor 1.5 at the 1e-7 level.
     """
     if D<0. or D>2.:
-        raise ValueError("Must have 0<=D<=2")
+        raise ValueError("Must have 0<=D<=2 by definition of the Kuiper test")
 
     if D<2./N:
         return 1. - factorial(N)*(D-1./N)**(N-1)
@@ -50,7 +50,7 @@ def kuiper_FPP(D,N):
                 break
         return S1 - 8*D/(3.*sqrt(N))*S2
 
-def kuiper(data, cdf=lambda x: x):
+def kuiper(data, cdf=lambda x: x, args=()):
     """Compute the Kuiper statistic
     
     Use the Kuiper statistic version of the Kolmogorov-Smirnov test to find the probability that something like data was drawn from the distribution whose CDF is given as cdf.
@@ -64,11 +64,12 @@ def kuiper(data, cdf=lambda x: x):
     Stephens 1970 claims this is more effective than the KS at detecting changes in the variance of a distribution; the KS is (he claims) more sensitive at detecting changes in the mean.
 
     If cdf was obtained from data by fitting, then fpp is not correct and it will be necessary to do Monte Carlo simulations to interpret D. D should normally be independent of the shape of CDF.
+
     """
 
     # FIXME: doesn't work for distributions that are actually discrete (for example Poisson).
     data = sort(data)
-    cdfv = cdf(data)
+    cdfv = cdf(data,*args)
     N = len(data)
     D = amax(cdfv-arange(N)/float(N)) + amax((arange(N)+1)/float(N)-cdfv)
 
