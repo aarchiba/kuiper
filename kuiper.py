@@ -13,6 +13,18 @@ def kuiper_FPP(D,N):
     but can be a bit high in the N=40..50 range. (They quote a factor 1.5 at 
     the 1e-7 level.
 
+    Parameters
+    ----------
+    D : float
+        The Kuiper test score.
+    N : float
+        The effective sample size.
+
+    Returns
+    -------
+    fpp : float
+        The probability of a score this large arising from the null hypothesis.
+
     """
     if D<0. or D>2.:
         raise ValueError("Must have 0<=D<=2 by definition of the Kuiper test")
@@ -60,7 +72,27 @@ def kuiper(data, cdf=lambda x: x, args=()):
     Use the Kuiper statistic version of the Kolmogorov-Smirnov test to 
     find the probability that something like data was drawn from the 
     distribution whose CDF is given as cdf.
+    
+    Parameters
+    ----------
+    data : array-like
+        The data values.
+    cdf : callable
+        A callable to evaluate the CDF of the distribution being tested
+        against. Will be called with a vector of all values at once.
+    args : list-like, optional
+        Additional arguments to be supplied to cdf.
 
+    Returns
+    -------
+    D : float
+        The raw statistic.
+    fpp : float
+        The probability of a D this large arising with a sample drawn from
+        the distribution whose CDF is cdf.
+
+    Notes
+    -----
     The Kuiper statistic resembles the Kolmogorov-Smirnov test in that 
     it is nonparametric and invariant under reparameterizations of the data. 
     The Kuiper statistic, in addition, is equally sensitive throughout 
@@ -95,6 +127,23 @@ def kuiper(data, cdf=lambda x: x, args=()):
 def kuiper_two(data1, data2):
     """Compute the Kuiper statistic to compare two samples.
 
+    Parameters
+    ----------
+    data1 : array-like
+        The first set of data values.
+    data2 : array-like
+        The second set of data values.
+    
+    Returns
+    -------
+    D : float
+        The raw test statistic.
+    fpp : float
+        The probability of obtaining two samples this different from
+        the same distribution.
+
+    Notes
+    -----
     Warning: the fpp is quite approximate, especially for small samples.
 
     """
@@ -112,6 +161,7 @@ def kuiper_two(data1, data2):
     return D, kuiper_FPP(D, Ne)
 
 
+
 def fold_intervals(intervals):
     """Fold the weighted intervals to the interval (0,1).
 
@@ -121,9 +171,22 @@ def fold_intervals(intervals):
     are interpreted modulo 1, and weights are accumulated counting 
     multiplicity.
 
-    The return format is an array of breaks of length N, and an array of
-    weights of length N-1.
-    
+    Parameters
+    ----------
+    intervals : list of three-element tuples (ai,bi,wi)
+        The intervals to fold; ai and bi are the limits of the interval, and
+        wi is the weight to apply to the interval.
+
+    Returns
+    -------
+    breaks : array of floats length N
+        The endpoints of a set of intervals covering [0,1]; breaks[0]=0 and
+        breaks[-1] = 1
+    weights : array of floats of length N-1
+        The ith element is the sum of number of times the interval 
+        breaks[i],breaks[i+1] is included in each interval times the weight
+        associated with that interval.
+
     """
     r = []
     breaks = set()
@@ -155,6 +218,19 @@ def cdf_from_intervals(breaks, totals):
     make a callable cumulative distribution function on the interval
     (0,1).
 
+    Parameters
+    ----------
+    breaks : array of floats of length N
+        The boundaries of successive intervals.
+    weights : array of floats of length N-1
+        The weight for each interval.
+
+    Returns
+    -------
+    f : callable
+        A cumulative distribution function corresponding to the 
+        piecewise-constant probability distribution given by breaks, weights
+
     """
     if breaks[0]!=0 or breaks[-1]!=1:
         raise ValueError("Intervals must be restricted to [0,1]")
@@ -174,7 +250,19 @@ def cdf_from_intervals(breaks, totals):
     return cdf
 
 def interval_overlap_length(i1,i2):
-    """Compute the length of overlap of two intervals."""
+    """Compute the length of overlap of two intervals.
+    
+    Parameters
+    ----------
+    i1, i2 : pairs of two floats
+        The two intervals.
+
+    Returns
+    -------
+    l : float
+        The length of the overlap between the two intervals.
+    
+    """
     (a,b) = i1
     (c,d) = i2
     if a<c:
@@ -193,6 +281,21 @@ def interval_overlap_length(i1,i2):
         return 0
 
 def histogram_intervals(n, breaks, totals):
+    """Histogram of a piecewise-constant PDF.
+
+    This function takes a piecewise-constant PDF and computes the probability
+    density in each histogram bin.
+
+    Parameters
+    ----------
+    n : int
+        The number of bins
+    breaks : array of floats of length N
+        Endpoints of the intervals in the PDF
+    totals : array of floats of length N-1
+        Probability densities in each bin
+
+    """
     h = np.zeros(n)
     start = breaks[0]
     for i in range(len(totals)):
