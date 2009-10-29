@@ -1,31 +1,22 @@
 import numpy as np
 import scipy.stats
 
+from test_kuiper import seed, double_check, check_uniform, check_fpp
 import zm2
 
 def test_null():
     for N in 100, 1000, 10000:
-        yield check_null, N
+        for m in [1,2,5]:
+            yield check_uniform, lambda x: zm2.zm2(x,m)[1], N
 
-def check_null(N):
-    Z, fpp = zm2.Zm2(np.random.random(N),5)
-    assert fpp>0.01
-
+@seed()
+@double_check
 def test_non_null():
-    Z, fpp = zm2.Zm2(np.random.random(1000)/2,5)
+    Z, fpp = zm2.zm2(np.random.random(1000)/2,5)
     assert fpp<0.01
 
 def test_fpp():
-    for N in 100, 200:
-        yield check_fpp, N, 1000, 0.05
-
-def check_fpp(N,M,thresh):
-    fp = 0
-    for i in range(M):
-        Z, fpp = zm2.Zm2(np.random.random(N),5)
-        if fpp<thresh:
-            fp += 1
-    print thresh, float(fp)/M
-    assert scipy.stats.binom(M,thresh).sf(fp-1)>0.005
-    assert scipy.stats.binom(M,thresh).cdf(fp-1)>0.005
+    for N in 10, 100, 500:
+        for m in [1,2,5]:
+            yield check_fpp, lambda x: zm2.zm2(x,m)[1], N, 1000, 0.05
 

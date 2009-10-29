@@ -5,6 +5,21 @@ from nose.tools import make_decorator
 
 import kuiper
 
+def seed(n=0):
+    """Seed the random number generator before running a test."""
+
+    def wrap(f):
+        def wrapped(*args,**kwargs):
+            np.random.seed(n)
+            return f(*args,**kwargs)
+        wrapped.__name__ = f.__name__
+        wrapped.__dict__ = f.__dict__
+        wrapped.__doc__ = f.__doc__
+        wrapped.__module__ = f.__module__
+        return wrapped
+    return wrap
+        
+
 # FIXME
 #@make_decorator doesn't work!
 def double_check(f):
@@ -29,35 +44,41 @@ def double_check(f):
 
 def test_uniform():
     for N in [10,100,1000,10000]:
-        yield check_uniform, N
+        yield check_uniform, lambda x: kuiper.kuiper(x)[1], N
 
+@seed()
 @double_check
-def check_uniform(N):
-    assert kuiper.kuiper(np.random.random(N))[1]>0.01
+def check_uniform(f,N):
+    assert f(np.random.random(N))>0.01
 
 def test_fpp():
+    def F(x):
+        return kuiper.kuiper(x)[1]
     for N in [10,100,1000]:
-        yield check_fpp, N, 100, 0.05
-        yield check_fpp, N, 100, 0.25
+        yield check_fpp, F, N, 100, 0.05
+        yield check_fpp, F, N, 100, 0.25
     #Seems to fail for N==5
     #yield check_fpp, 5, 1000, 0.05
 
+@seed()
 @double_check
-def check_fpp(N,M,fpp):
+def check_fpp(F,N,M,fpp):
     fps = 0
     for i in range(M):
-        D, f = kuiper.kuiper(np.random.random(N))
+        f = F(np.random.random(N))
         if f<fpp:
             fps += 1
     assert scipy.stats.binom(M,fpp).sf(fps-1)>0.005
     assert scipy.stats.binom(M,fpp).cdf(fps-1)>0.005
 
+@seed()
 @double_check
 def test_detect_nonuniform():
     D, f = kuiper.kuiper(np.random.random(500)*0.5)
     assert f<0.01
 
 
+@seed()
 @double_check
 def test_weighted():
     a = (np.random.random(100) * 3.4 + 0.8)%1
@@ -67,6 +88,7 @@ def test_weighted():
     assert kuiper.kuiper(a,cdf)[1]>0.01
 
 
+# Out of sheer laziness I'm not going to generify these tests.
 def test_kuiper_two():
     for (N,M) in [(100,100),
                   (20,100),
@@ -78,21 +100,21 @@ def test_kuiper_two():
         yield check_kuiper_two_nonuniform, N, M
         yield check_fpp_kuiper_two, N, M, 100, 0.05
 
+@seed()
 @double_check
 def check_kuiper_two_uniform(N,M):
     assert kuiper.kuiper_two(np.random.random(N),np.random.random(M))[1]>0.01
 
+@seed()
 @double_check
 def check_kuiper_two_nonuniform(N,M):
     assert kuiper.kuiper_two(np.random.random(N)**2,np.random.random(M)**2)[1]>0.01
 
+@seed()
 @double_check
 def test_detect_kuiper_two_different():
     D, f = kuiper.kuiper_two(np.random.random(500)*0.5,np.random.random(500))
     assert f<0.01
-
-def test_kuiper_two_fpp():
-    pass
 
 @double_check
 def check_fpp_kuiper_two(N,M,R,fpp):

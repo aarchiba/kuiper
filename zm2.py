@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats
 
-def Zm2(events, M):
+def zm2(events, M):
     """The Z_m^2 test for periodicity.
 
     The Z_m^2 test uses a sequence of events to construct an estimate of
