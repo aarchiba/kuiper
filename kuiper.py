@@ -281,10 +281,10 @@ def interval_overlap_length(i1,i2):
         return 0
 
 def histogram_intervals(n, breaks, totals):
-    """Histogram of a piecewise-constant PDF.
+    """Histogram of a piecewise-constant weight function.
 
-    This function takes a piecewise-constant PDF and computes the probability
-    density in each histogram bin.
+    This function takes a piecewise-constant weight function and 
+    computes the average weight in each histogram bin.
 
     Parameters
     ----------
@@ -294,6 +294,11 @@ def histogram_intervals(n, breaks, totals):
         Endpoints of the intervals in the PDF
     totals : array of floats of length N-1
         Probability densities in each bin
+    
+    Returns
+    -------
+    h : array of floats
+        The average weight for each bin
 
     """
     h = np.zeros(n)

@@ -1,7 +1,7 @@
 
 import numpy as np
 import scipy.stats
-from nose.tools import make_decorator
+from numpy.testing import assert_array_almost_equal
 
 import kuiper
 
@@ -116,6 +116,7 @@ def test_detect_kuiper_two_different():
     D, f = kuiper.kuiper_two(np.random.random(500)*0.5,np.random.random(500))
     assert f<0.01
 
+@seed()
 @double_check
 def check_fpp_kuiper_two(N,M,R,fpp):
     fps = 0
@@ -126,3 +127,35 @@ def check_fpp_kuiper_two(N,M,R,fpp):
     assert scipy.stats.binom(R,fpp).sf(fps-1)>0.005
     assert scipy.stats.binom(R,fpp).cdf(fps-1)>0.005
 
+
+@seed()
+@double_check
+def test_histogram():
+    a, b = 0.3, 3.14
+    s = np.random.uniform(a,b,10000) % 1
+    
+    b, w = kuiper.fold_intervals([(a,b,1./(b-a))])
+
+    h = kuiper.histogram_intervals(16,b,w)
+    nn, bb = np.histogram(s, bins=len(h), range=(0,1), new=True)
+
+    uu = np.sqrt(nn)
+    nn, uu = len(h)*nn/h/len(s), len(h)*uu/h/len(s)
+
+    c2 = np.sum(((nn-1)/uu)**2)
+    
+    assert scipy.stats.chi2(len(h)).cdf(c2)>0.01
+    assert scipy.stats.chi2(len(h)).sf(c2)>0.01
+
+def check_histogram_intervals_known(ii, rr):
+    assert_array_almost_equal(kuiper.histogram_intervals(*ii),rr)
+
+def test_histogram_intervals_known():
+    for (ii, rr) in [ 
+            ( (4,(0,1),(1,)), (1,1,1,1) ),
+            ( (2,(0,1),(1,)), (1,1) ),
+            ( (4,(0,0.5,1),(1,1)), (1,1,1,1) ),
+            ( (4,(0,0.5,1),(1,2)), (1,1,2,2) ),
+            ( (3,(0,0.5,1),(1,2)), (1,1.5,2) ),
+            ]:
+        yield check_histogram_intervals_known, ii, rr
