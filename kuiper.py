@@ -25,6 +25,12 @@ def kuiper_FPP(D,N):
     fpp : float
         The probability of a score this large arising from the null hypothesis.
 
+    Reference
+    ---------
+    Paltani, S., "Searching for periods in X-ray observations using 
+    Kuiper's test. Application to the ROSAT PSPC archive", Astronomy and
+    Astrophysics, v.240, p.789-790, 2004.
+
     """
     if D<0. or D>2.:
         raise ValueError("Must have 0<=D<=2 by definition of the Kuiper test")
