@@ -54,9 +54,12 @@ def check_uniform(f,N):
 def test_fpp():
     def F(x):
         return kuiper.kuiper(x)[1]
-    for N in [10,100,1000]:
-        yield check_fpp, F, N, 100, 0.05
-        yield check_fpp, F, N, 100, 0.25
+    for N in [1000,100,80,50,30,20,10]:
+        yield check_fpp, F, N, 200, 0.05
+        yield check_fpp, F, N, 200, 0.25
+        if False: # These tests fail because the FPP is too approximate.
+            yield check_fpp_kuiper, F, N, 100, 0.05
+            yield check_fpp_kuiper, F, N, 200
     #Seems to fail for N==5
     #yield check_fpp, 5, 1000, 0.05
 
@@ -70,6 +73,17 @@ def check_fpp(F,N,M,fpp):
             fps += 1
     assert scipy.stats.binom(M,fpp).sf(fps-1)>0.005
     assert scipy.stats.binom(M,fpp).cdf(fps-1)>0.005
+
+@seed()
+@double_check
+def check_fpp_kuiper(F,N,M,thresh=1.):
+    ps = []
+    while len(ps)<M:
+        p = F(np.random.random(N))
+        if p<thresh:
+            ps.append(p/thresh)
+    
+    assert kuiper.kuiper(ps)[1]<0.01
 
 @seed()
 @double_check
