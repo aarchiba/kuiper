@@ -83,7 +83,7 @@ def check_fpp_kuiper(F,N,M,thresh=1.):
         if p<thresh:
             ps.append(p/thresh)
     
-    assert kuiper.kuiper(ps)[1]<0.01
+    assert kuiper.kuiper(ps)[1]>0.01
 
 @seed()
 @double_check
