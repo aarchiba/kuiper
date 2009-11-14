@@ -32,3 +32,19 @@ def test_fpp():
         yield check_fpp_kuiper, F, N, 1000
 
 
+@seed()
+@double_check
+def check_fpp_ad_nonuniform(N, M, cdf, cdfinv):
+    r = []
+    for i in range(M):
+        s = cdfinv(np.random.random(N))
+        A2, fpp = anderson_darling.anderson_darling(s,cdf)
+        r.append(fpp)
+    assert anderson_darling.anderson_darling(r)>0.01
+
+def test_fpp_nonuniform():
+    for N in 10, 50, 100:
+        yield check_fpp_ad_nonuniform, N, 1000, np.exp, np.log
+        yield check_fpp_ad_nonuniform, N, 1000, lambda x: x**3, lambda x: x**(1./3)
+
+        yield check_fpp_kuiper, F, N, 1000
