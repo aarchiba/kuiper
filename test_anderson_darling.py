@@ -48,3 +48,37 @@ def test_fpp_nonuniform():
         yield check_fpp_ad_nonuniform, N, 1000, lambda x: x**3, lambda x: x**(1./3)
 
         yield check_fpp_kuiper, F, N, 1000
+
+@seed()
+@double_check
+def check_k_sample_fpp(ip, p, k, m):
+    N = 1000
+    r = 0
+    for i in range(N):
+        samples = np.random.random_sample((k,m))
+        A2, TkN, (tkm1, ps), pv = anderson_darling.anderson_darling_k(samples)
+        if pv<=p:
+            r += 1
+    assert scipy.stats.binom(N,p).cdf(r) > 0.01
+    assert scipy.stats.binom(N,p).sf(r) > 0.01
+
+def test_k_sample_fpp():
+
+    for ip, p in enumerate([0.25, 0.10, 0.05, 0.025, 0.01]):
+        yield check_k_sample_fpp, ip, p, 2, 10
+        yield check_k_sample_fpp, ip, p, 10, 10
+
+@seed()
+@double_check
+def test_k_sample_simple_pass():
+    samples = np.random.random_sample((2,10))
+    A2, TkN, (tkm1, ps), pv = anderson_darling.anderson_darling_k(samples)
+    assert pv>0.01 # 0.01 is the smallest possible p
+
+@seed()
+@double_check
+def test_k_sample_simple_fail():
+    samples = np.random.random_sample((2,100))
+    samples[1,:] *= 2
+    A2, TkN, (tkm1, ps), pv = anderson_darling.anderson_darling_k(samples)
+    assert pv<=0.01 # 0.01 is the smallest possible p
