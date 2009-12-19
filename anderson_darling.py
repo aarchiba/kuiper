@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.stats
 
 _adpoly1 = np.poly1d([0.00168691, -0.0116720, 0.0347962, -0.0649821, 0.247105, 2.00012])
 _adpoly2 = np.poly1d([-0.0003146, 0.008056, -0.082433, 0.43424, -2.30695, 1.0776])
@@ -171,19 +172,6 @@ def anderson_darling(data, cdf=lambda x: x):
 
     return A2, anderson_darling_fpp(A2, len(data))
 
-# not used
-_tm = {
-        1: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        2: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        3: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        4: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        6: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        8: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        10: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-        np.inf: [(0.25, 0.326), (0.10, 1.225), (0.05, 1.960), (0.025, 2.719), (0.01, 3.752)],
-
-        }
-
 _ps = np.array([0.25, 0.10, 0.05, 0.025, 0.01])
 # not used
 _ms = [1,2,3,4,6,8,10,np.inf]
@@ -205,7 +193,14 @@ _b2s = np.array([-0.105, -0.305, -0.362, -0.391, -0.396])
 def anderson_darling_k(samples):
     """Apply the Anderson-Darling k-sample test.
 
-    Scholz and Stephens 1987.
+    This test evaluates whether it is plausible that all the samples are drawn
+    from the same distribution, based on Scholz and Stephens 1987. The
+    statistic computed is their A_kn (rather than A_akn, which differs in
+    how it handles ties). The significance of the result is computed by
+    producing a scaled and standardized result T_kN, which is returned and
+    compared against a list of standard significance levels. The next-larger
+    p-value is returned.
+
     """
     samples = [np.array(sorted(s)) for s in samples]
     all = np.concatenate(samples+[[np.inf]])
@@ -256,3 +251,89 @@ def anderson_darling_k(samples):
     else:
         p = 1.
     return A2, TkN, (tkm1, _ps.copy()), p
+
+
+_adnormal_ps = np.array([0.15, 0.1, 0.05, 0.025, 0.01])
+_adnormal_case0_thresholds = np.array([1.610, 1.933, 2.492, 3.070, 3.857])
+_adnormal_case1_thresholds = np.array([0.784, 0.897, 1.088, 1.281, 1.541])
+_adnormal_case2_thresholds = np.array([1.443, 1.761, 2.315, 2.890, 3.682])
+_adnormal_case3_thresholds = np.array([0.560, 0.632, 0.751, 0.870, 1.029])
+
+def anderson_darling_normal(data, mu=None, sigma=None):
+    """Apply the Anderson-Darling statistic to test whether data is normal.
+    
+    If both mu and sigma are supplied, the test is a simple Anderson-Darling
+    test. If one or both are left as None, then they are estimated from the
+    data and the significance is corrected as appropriate. In these cases
+    it is only possible to compare the statistic to a finite (short) list
+    of tabulated values (from Stephens 1976), so the returned p value will 
+    be the next larger standard p value.
+
+    """
+    fixed_mu = False
+    fixed_sigma = False
+    if mu is None:
+        mu = np.mean(data)
+    else:
+        fixed_mu = True
+
+    if sigma is None:
+        if fixed_mu:
+            ddof = 0
+        else:
+            # must use this so thresholds are right
+            ddof = 1
+        sigma = np.std(data,ddof=ddof)
+    else:
+        fixed_sigma = True
+
+    A2 = anderson_darling_statistic(data, scipy.stats.norm(loc=mu, scale=sigma).cdf)
+
+    if fixed_mu and fixed_sigma:
+        p = anderson_darling_fpp(A2, len(data))
+
+        return A2, (mu, sigma), (_adnormal_ps.copy(), _adnormal_case0_thresholds.copy()), p
+    else:
+        if not fixed_mu and fixed_sigma:
+            th = _adnormal_case1_thresholds
+        elif fixed_mu and not fixed_sigma:
+            th = _adnormal_case2_thresholds
+        elif not fixed_mu and not fixed_sigma:
+            th = _adnormal_case3_thresholds
+
+        ix = np.searchsorted(th, A2)
+        if ix==0:
+            p = 1.
+        else:
+            p = _adnormal_ps[ix-1]
+
+        return A2, (mu, sigma), (_adnormal_ps.copy(), th.copy()), p
+
+_adexp_ps = _adnormal_ps
+_adexp_unfixed_thresholds = np.array([0.918, 1.070, 1.326, 1.587, 1.943])
+
+def anderson_darling_exponential(data, theta=None):
+
+    if theta is None:
+        theta = 1./np.mean(data)
+        fix_theta = False
+    else:
+        fix_theta = True
+
+    A2 = anderson_darling_statistic(data, lambda d: 1-np.exp(-theta*x))
+
+    if fix_theta:
+        th = _adexp_unfixed_thresholds
+
+        ix = np.searchsorted(th, A2)
+        if ix==0:
+            p = 1.
+        else:
+            p = _adnormal_ps[ix-1]
+
+        return A2, theta, (_adexp_ps.copy(), th.copy()), p
+    else:
+        p = anderson_darling_fpp(A2, len(data))
+
+        return A2, theta, (None, None), p
+

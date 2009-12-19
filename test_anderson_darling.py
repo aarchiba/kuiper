@@ -82,3 +82,36 @@ def test_k_sample_simple_fail():
     samples[1,:] *= 2
     A2, TkN, (tkm1, ps), pv = anderson_darling.anderson_darling_k(samples)
     assert pv<=0.01 # 0.01 is the smallest possible p
+
+@seed()
+@double_check
+def check_normal_fpp(n, mu, sigma, p):
+    if mu is None:
+        m = 0
+    else:
+        m = mu
+    if sigma is None:
+        s = 1
+    else:
+        s = sigma
+
+    N = 1000
+    r = 0
+    for i in range(N):
+        d = np.random.standard_normal(n) * s + m
+        A2, (mu_, sigma_), (ps, ths), pi = anderson_darling.anderson_darling_normal(d, mu=mu, sigma=sigma)
+        if pi<=p:
+            r+=1
+    assert scipy.stats.binom(N,p).cdf(r) > 0.01
+    assert scipy.stats.binom(N,p).sf(r) > 0.01
+
+def test_normal_fpp():
+    for n in [10, 100, 1000]:
+        yield check_normal_fpp, n, 0, 1, 0.1
+        yield check_normal_fpp, n, None, 1, 0.1
+        yield check_normal_fpp, n, 0, None, 0.1
+        yield check_normal_fpp, n, None, None, 0.1
+        yield check_normal_fpp, n, 0, 1, 0.01
+        yield check_normal_fpp, n, None, 1, 0.01
+        yield check_normal_fpp, n, 0, None, 0.01
+        yield check_normal_fpp, n, None, None, 0.01
