@@ -195,7 +195,7 @@ def fold_intervals(intervals):
 
     """
     r = []
-    breaks = set()
+    breaks = set([0,1])
     tot = 0
     for (a,b,wt) in intervals:
         tot += (np.ceil(b)-np.floor(a))*wt
@@ -203,18 +203,20 @@ def fold_intervals(intervals):
         breaks.add(fa)
         r.append((0,fa,-wt))
         fb = b%1
-        breaks.add(fb)
-        r.append((fb,1,-wt))
-
-    breaks.add(0.)
-    breaks.add(1.)
+        if fb!=0:
+            # If fb==0, no need to trim - but this code would trim
+            # [0,1] rather than [1,1]. So trap the special case.
+            breaks.add(fb)
+            r.append((fb,1,-wt))
+        
     breaks = list(breaks)
     breaks.sort()
     breaks_map = dict([(f,i) for (i,f) in enumerate(breaks)])
     totals = np.zeros(len(breaks)-1)
     totals += tot
     for (a,b,wt) in r:
-        totals[breaks_map[a]:breaks_map[b]]+=wt
+        if a!=b:
+            totals[breaks_map[a]:breaks_map[b]]+=wt
     return np.array(breaks), totals
 
 def cdf_from_intervals(breaks, totals):

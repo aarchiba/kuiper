@@ -173,3 +173,8 @@ def test_histogram_intervals_known():
             ( (3,(0,0.5,1),(1,2)), (1,1.5,2) ),
             ]:
         yield check_histogram_intervals_known, ii, rr
+
+def test_fold_intervals():
+    b, w = kuiper.fold_intervals([(0,0.1,1),(0.05,3,0.1)])
+    assert_array_almost_equal(b, [0,0.05,0.1,1])
+    assert_array_almost_equal(w, [1.2,1.3,0.3])
